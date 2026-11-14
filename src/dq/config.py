@@ -49,7 +49,11 @@ class ValidityRule(_RuleBase):
     check_type: Literal["validity"]
     column: str
     validity_check: Literal["allowed_values", "range", "date_range"]
-    allowed_values: list[str] | None = None
+    # validate_default=True: without it, pydantic v2 skips this field's
+    # validator entirely when the field is left at its default (i.e. the
+    # common case of omitting allowed_values altogether) - found by a test
+    # expecting this exact rejection to fire and it silently not doing so.
+    allowed_values: list[str] | None = Field(default=None, validate_default=True)
     min_value: float | None = None
     max_value: float | None = None
     min_date: str | None = None
