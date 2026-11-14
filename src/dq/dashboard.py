@@ -13,50 +13,67 @@ import pandas as pd
 import streamlit as st
 from sqlalchemy import text
 
-from dq.db import DQ_SCHEMA, get_dashboard_engine
+from dq.db import build_engine, get_dashboard_engine
 
 st.set_page_config(page_title="Data Quality Dashboard", layout="wide")
 
 
 @st.cache_resource
 def _engine():
-    return get_dashboard_engine()
+    """Deployed (Streamlit Cloud): build from st.secrets, which point at a
+    separate, scoped read-only user on a cloud MySQL instance - never the
+    local dq_app/root credentials. Local dev: no secrets.toml exists, so
+    this falls back to .env via get_dashboard_engine()."""
+    try:
+        s = st.secrets
+        return build_engine(
+            user=s["DASHBOARD_MYSQL_USER"],
+            password=s["DASHBOARD_MYSQL_PASSWORD"],
+            host=s["DASHBOARD_MYSQL_HOST"],
+            port=int(s.get("DASHBOARD_MYSQL_PORT", 3306)),
+            database=s["DASHBOARD_MYSQL_DB"],
+        )
+    except (FileNotFoundError, KeyError):
+        return get_dashboard_engine()
 
 
-# DQ_SCHEMA is a fixed internal constant, never user input; every value is
-# bound. nosec: B608 (x4 below) - see checks.py's module docstring for the
-# general rationale this project follows throughout.
+# Table names below are unqualified (no schema prefix) deliberately: the
+# engine's connection URL always specifies the right default database
+# (data_quality locally, a provider-assigned name when deployed), so the
+# same queries work against either without hardcoding a schema name.
+# nosec: B608 (x4 below) - see checks.py's module docstring for the general
+# rationale this project follows throughout; every value here is bound.
 def _load_runs() -> pd.DataFrame:
     query = text(
-        f"SELECT run_id, run_timestamp, source, rules_file "  # nosec B608
-        f"FROM {DQ_SCHEMA}.dq_runs ORDER BY run_id DESC"
+        "SELECT run_id, run_timestamp, source, rules_file "  # nosec B608
+        "FROM dq_runs ORDER BY run_id DESC"
     )
     return pd.read_sql(query, _engine())
 
 
 def _load_results(run_id: int) -> pd.DataFrame:
     query = text(
-        f"SELECT * FROM {DQ_SCHEMA}.dq_results WHERE run_id = :run_id ORDER BY rule_id"  # nosec B608
+        "SELECT * FROM dq_results WHERE run_id = :run_id ORDER BY rule_id"  # nosec B608
     )
     return pd.read_sql(query, _engine(), params={"run_id": run_id})
 
 
 def _load_exceptions(run_id: int, rule_id: str) -> pd.DataFrame:
     query = text(
-        f"SELECT record_key, detail FROM {DQ_SCHEMA}.dq_exceptions "  # nosec B608
-        f"WHERE run_id = :run_id AND rule_id = :rule_id ORDER BY record_key"
+        "SELECT record_key, detail FROM dq_exceptions "  # nosec B608
+        "WHERE run_id = :run_id AND rule_id = :rule_id ORDER BY record_key"
     )
     return pd.read_sql(query, _engine(), params={"run_id": run_id, "rule_id": rule_id})
 
 
 def _load_trend() -> pd.DataFrame:
     query = text(
-        f"SELECT ru.run_id, ru.run_timestamp, ru.source, "  # nosec B608
-        f"       SUM(re.passed) AS n_passed, COUNT(*) AS n_rules "
-        f"FROM {DQ_SCHEMA}.dq_runs ru "
-        f"JOIN {DQ_SCHEMA}.dq_results re ON re.run_id = ru.run_id "
-        f"GROUP BY ru.run_id, ru.run_timestamp, ru.source "
-        f"ORDER BY ru.run_id"
+        "SELECT ru.run_id, ru.run_timestamp, ru.source, "  # nosec B608
+        "       SUM(re.passed) AS n_passed, COUNT(*) AS n_rules "
+        "FROM dq_runs ru "
+        "JOIN dq_results re ON re.run_id = ru.run_id "
+        "GROUP BY ru.run_id, ru.run_timestamp, ru.source "
+        "ORDER BY ru.run_id"
     )
     df = pd.read_sql(query, _engine())
     df["pass_rate_pct"] = 100 * df["n_passed"] / df["n_rules"]

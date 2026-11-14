@@ -45,14 +45,32 @@ def get_app_engine() -> Engine:
 
 
 def get_dashboard_engine() -> Engine:
-    """dq_dashboard, read-only, scoped to the data_quality schema only."""
-    url = URL.create(
-        drivername="mysql+mysqlconnector",
-        username=_require_env("DASHBOARD_MYSQL_USER"),
+    """dq_dashboard, read-only, scoped to the data_quality schema only.
+    Used for local development; the deployed dashboard builds its engine
+    from Streamlit secrets instead (see dashboard.py), which may point at
+    a different host/database (e.g. a cloud MySQL instance with a
+    provider-assigned database name) - callers should use unqualified
+    table names so the same queries work against either."""
+    return build_engine(
+        user=_require_env("DASHBOARD_MYSQL_USER"),
         password=_require_env("DASHBOARD_MYSQL_PASSWORD"),
         host=os.environ.get("SOURCE_MYSQL_HOST", "127.0.0.1"),
         port=int(os.environ.get("SOURCE_MYSQL_PORT", "3306")),
         database=_require_env("DQ_MYSQL_DB"),
+    )
+
+
+def build_engine(*, user: str, password: str, host: str, port: int, database: str) -> Engine:
+    """Pure engine builder with no environment/.env dependency, so the same
+    code path works whether the connection details came from .env (local)
+    or st.secrets (deployed)."""
+    url = URL.create(
+        drivername="mysql+mysqlconnector",
+        username=user,
+        password=password,
+        host=host,
+        port=port,
+        database=database,
     )
     return create_engine(url)
 

@@ -10,6 +10,7 @@ dist/
 
 # secrets
 .env
+.streamlit/secrets.toml
 
 # raw and record-level data never belongs in git
 data/
