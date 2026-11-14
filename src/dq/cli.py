@@ -1,6 +1,7 @@
 """CLI entry point:
 python -m dq run --config rules.yaml [--source original|defect_copy] [--report]
 python -m dq report [--run-id N]
+python -m dq inject-defects
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ from pathlib import Path
 
 from dq.config import RulesConfigError
 from dq.db import get_app_engine
+from dq.defect_injection import clone_source_into_defect_copy, inject_defects
 from dq.engine import run_rules
 from dq.logging_config import configure_logging
 from dq.reports import generate_exceptions_report, generate_scorecard
@@ -48,11 +50,23 @@ def main(argv: list[str] | None = None) -> int:
         "--run-id", type=int, default=None, help="Defaults to the most recent run"
     )
 
+    subparsers.add_parser(
+        "inject-defects",
+        help="Clone retail_banking into dq_defect_copy and plant known, documented errors",
+    )
+
     args = parser.parse_args(argv)
     logger = configure_logging()
 
     if args.command == "report":
         _write_reports(logger, args.run_id)
+        return 0
+
+    if args.command == "inject-defects":
+        engine = get_app_engine()
+        clone_source_into_defect_copy(engine)
+        for label, targets_rule, rows_affected in inject_defects(engine):
+            logger.info("%-9s %4d rows - %s", targets_rule, rows_affected, label)
         return 0
 
     try:
