@@ -1,0 +1,238 @@
+# Data quality rules for the retail_banking schema (loaded by the sibling
+# retail-banking-analytics project). Every threshold below was calibrated
+# against the real, live data - not guessed - see docs/traceability_matrix.md
+# for the business requirement behind each rule and the actual observed
+# rate at the time rules.yaml was written.
+#
+# threshold = maximum tolerated FAILURE rate (0.0 = zero tolerance).
+
+rules:
+  # --- completeness ---
+  - id: DQ-001
+    description: "Account identifiers must never be null (pipeline sanity baseline)"
+    table: account
+    check_type: completeness
+    column: account_id
+    severity: critical
+    threshold: 0.0
+
+  - id: DQ-002
+    description: "District 1995 unemployment rate should be present, with one known historical gap tolerated"
+    table: district
+    check_type: completeness
+    column: unemployment_rate_95
+    severity: low
+    threshold: 0.02
+
+  - id: DQ-003
+    description: "District 1995 crime count should be present, with one known historical gap tolerated"
+    table: district
+    check_type: completeness
+    column: crimes_95
+    severity: low
+    threshold: 0.02
+
+  # --- uniqueness ---
+  - id: DQ-004
+    description: "account_id must be unique in account"
+    table: account
+    check_type: uniqueness
+    columns: [account_id]
+    severity: critical
+    threshold: 0.0
+
+  - id: DQ-005
+    description: "client_id must be unique in client"
+    table: client
+    check_type: uniqueness
+    columns: [client_id]
+    severity: critical
+    threshold: 0.0
+
+  - id: DQ-006
+    description: "At most one loan per account (business rule, independent of the DB's own UNIQUE constraint)"
+    table: loan
+    check_type: uniqueness
+    columns: [account_id]
+    severity: critical
+    threshold: 0.0
+
+  - id: DQ-007
+    description: "A client should not hold two disposition records on the same account"
+    table: disposition
+    check_type: uniqueness
+    columns: [client_id, account_id]
+    severity: high
+    threshold: 0.0
+
+  # --- referential integrity (every FK relationship in the schema) ---
+  - id: DQ-008
+    description: "Every client.district_id must reference an existing district"
+    table: client
+    check_type: referential_integrity
+    column: district_id
+    ref_table: district
+    ref_column: district_id
+    severity: critical
+    threshold: 0.0
+
+  - id: DQ-009
+    description: "Every account.district_id must reference an existing district"
+    table: account
+    check_type: referential_integrity
+    column: district_id
+    ref_table: district
+    ref_column: district_id
+    severity: critical
+    threshold: 0.0
+
+  - id: DQ-010
+    description: "Every disposition.client_id must reference an existing client"
+    table: disposition
+    check_type: referential_integrity
+    column: client_id
+    ref_table: client
+    ref_column: client_id
+    severity: critical
+    threshold: 0.0
+
+  - id: DQ-011
+    description: "Every disposition.account_id must reference an existing account"
+    table: disposition
+    check_type: referential_integrity
+    column: account_id
+    ref_table: account
+    ref_column: account_id
+    severity: critical
+    threshold: 0.0
+
+  - id: DQ-012
+    description: "Every loan.account_id must reference an existing account"
+    table: loan
+    check_type: referential_integrity
+    column: account_id
+    ref_table: account
+    ref_column: account_id
+    severity: critical
+    threshold: 0.0
+
+  - id: DQ-013
+    description: "Every card.disp_id must reference an existing disposition"
+    table: card
+    check_type: referential_integrity
+    column: disp_id
+    ref_table: disposition
+    ref_column: disp_id
+    severity: critical
+    threshold: 0.0
+
+  - id: DQ-014
+    description: "Every permanent_order.account_id must reference an existing account"
+    table: permanent_order
+    check_type: referential_integrity
+    column: account_id
+    ref_table: account
+    ref_column: account_id
+    severity: critical
+    threshold: 0.0
+
+  - id: DQ-015
+    description: "Every transactions.account_id must reference an existing account"
+    table: transactions
+    check_type: referential_integrity
+    column: account_id
+    ref_table: account
+    ref_column: account_id
+    severity: critical
+    threshold: 0.0
+
+  # --- validity ---
+  - id: DQ-016
+    description: "loan.status must be one of the documented codes A/B/C/D"
+    table: loan
+    check_type: validity
+    column: status
+    validity_check: allowed_values
+    allowed_values: ["A", "B", "C", "D"]
+    severity: high
+    threshold: 0.0
+
+  - id: DQ-017
+    description: "account.frequency must be one of the three documented statement frequencies"
+    table: account
+    check_type: validity
+    column: frequency
+    validity_check: allowed_values
+    allowed_values: ["POPLATEK MESICNE", "POPLATEK TYDNE", "POPLATEK PO OBRATU"]
+    severity: medium
+    threshold: 0.0
+
+  - id: DQ-018
+    description: "disposition.type must be OWNER or DISPONENT"
+    table: disposition
+    check_type: validity
+    column: type
+    validity_check: allowed_values
+    allowed_values: ["OWNER", "DISPONENT"]
+    severity: medium
+    threshold: 0.0
+
+  - id: DQ-019
+    description: "card.type must be one of the documented tiers"
+    table: card
+    check_type: validity
+    column: type
+    validity_check: allowed_values
+    allowed_values: ["junior", "classic", "gold"]
+    severity: low
+    threshold: 0.0
+
+  - id: DQ-020
+    description: "district.urban_ratio_pct must be a valid percentage (0-100)"
+    table: district
+    check_type: validity
+    column: urban_ratio_pct
+    validity_check: range
+    min_value: 0
+    max_value: 100
+    severity: medium
+    threshold: 0.0
+
+  - id: DQ-021
+    description: >-
+      transactions.type should only be the two documented codes PRIJEM/VYDAJ.
+      Expected to FAIL at this threshold: 1.58% of rows use "VYBER" instead
+      of "VYDAJ", a genuine source mislabelling documented in the sibling
+      project's docs/data_dictionary.md and rediscovered independently here.
+    table: transactions
+    check_type: validity
+    column: type
+    validity_check: allowed_values
+    allowed_values: ["PRIJEM", "VYDAJ"]
+    severity: medium
+    threshold: 0.01
+
+  # --- consistency ---
+  - id: DQ-022
+    description: "loan.amount must equal payments x duration"
+    table: loan
+    check_type: consistency
+    formula: loan_amount_equals_payments_times_duration
+    severity: high
+    threshold: 0.0
+
+  # --- reconciliation ---
+  - id: DQ-023
+    description: >-
+      Each account's final recorded balance should equal the sum of all its
+      transaction amounts (PRIJEM positive, VYDAJ/VYBER negative), assuming
+      a $0 opening balance. Small residual gaps (max $2.70 across all 4,500
+      accounts) come from floating-point rounding compounding in monthly
+      interest postings over a multi-year history, not a data defect -
+      see docs/traceability_matrix.md for the full investigation.
+    table: transactions
+    check_type: reconciliation
+    formula: account_balance_reconciliation
+    tolerance: 1.00
+    severity: high
+    threshold: 0.02
