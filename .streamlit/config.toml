@@ -1,0 +1,17 @@
+# Security posture for this dashboard: localhost only, no file uploads,
+# no development/debug mode. See SECURITY.md.
+[server]
+address = "127.0.0.1"
+headless = true
+enableXsrfProtection = true
+enableCORS = false
+maxUploadSize = 0
+
+[browser]
+gatherUsageStats = false
+
+[global]
+developmentMode = false
+
+[client]
+showErrorDetails = false
