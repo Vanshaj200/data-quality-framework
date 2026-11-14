@@ -1,0 +1,16 @@
+group_type,group_value,n_rules,n_passed,n_failed,pass_rate_pct
+overall,all_rules,23,22,1,95.65
+table,account,4,4,0,100.0
+table,card,2,2,0,100.0
+table,client,2,2,0,100.0
+table,disposition,4,4,0,100.0
+table,district,3,3,0,100.0
+table,loan,4,4,0,100.0
+table,permanent_order,1,1,0,100.0
+table,transactions,3,2,1,66.67
+check_type,completeness,3,3,0,100.0
+check_type,consistency,1,1,0,100.0
+check_type,reconciliation,1,1,0,100.0
+check_type,referential_integrity,8,8,0,100.0
+check_type,uniqueness,4,4,0,100.0
+check_type,validity,6,5,1,83.33
