@@ -9,6 +9,16 @@ Run with: streamlit run src/dq/dashboard.py
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# Streamlit Cloud only runs `pip install -r requirements.txt`, not the
+# editable `pip install -e .` that makes `dq` importable locally (via
+# scripts/setup.ps1) - so `import dq` fails there with ModuleNotFoundError
+# unless src/ is explicitly on sys.path. Harmless locally, where the
+# editable install already makes this a no-op.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import pandas as pd
 import streamlit as st
 from sqlalchemy import text
