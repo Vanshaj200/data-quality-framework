@@ -1,5 +1,7 @@
 # data-quality-framework
 
+**Live dashboard**: https://nwbank-data-quality-framework.streamlit.app
+
 **Problem**: a bank needs to know, continuously and automatically, whether
 its data is trustworthy — not find out the hard way when a report is
 wrong. **Approach**: a config-driven rule engine (23 rules, 6 check types)
