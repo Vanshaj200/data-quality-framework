@@ -1,0 +1,13 @@
+pandas==3.1.1
+SQLAlchemy==2.1.8
+mysql-connector-python==26.10.0
+python-dotenv==1.2.4
+PyYAML==6.0.3
+pydantic==2.14.3
+streamlit==1.67.0
+
+# dev / quality tooling
+pytest==9.2.0
+ruff==0.17.5
+bandit==1.9.4
+pip-audit==2.10.1

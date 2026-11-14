@@ -1,0 +1,28 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# secrets
+.env
+
+# raw and record-level data never belongs in git
+data/
+data/raw/
+exceptions_reports/*.csv
+!exceptions_reports/.gitkeep
+
+# logs
+logs/
+*.log
+
+# editor/OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
